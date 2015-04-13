@@ -1,6 +1,6 @@
 import java.io.FileNotFoundException;
 
-public class Program {
+public class GeoDist {
 	public static void main(String[] args) {
 
 		if (args.length > 0) {
