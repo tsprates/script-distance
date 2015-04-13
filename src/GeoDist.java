@@ -1,20 +1,28 @@
 import java.io.FileNotFoundException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class GeoDist {
 	public static void main(String[] args) {
 
 		if (args.length > 0) {
-			try {
-				new GetKm(args[0]);
+			ExecutorService service = Executors.newSingleThreadExecutor();
 
-				System.out.println("Projeto - AtlasBrasil");
-				System.out.println("Iniciando:");
+			try {
+				service.submit(new GetGeoService(args[0]));
 			} catch (FileNotFoundException e) {
-				System.err.println(" [Error] - Necessario arquivo de Config.");
-				System.exit(0);
+				e.printStackTrace();
+			}
+			service.shutdown();
+
+			try {
+				service.awaitTermination(1, TimeUnit.DAYS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		} else {
-			System.err.println(" [Error] - Necessario arquivo de Config.");
+			System.err.println(" [Error] - Necessário arquivo de configurações.");
 			System.exit(0);
 		}
 	}

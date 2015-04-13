@@ -32,7 +32,7 @@ import org.xml.sax.SAXException;
  * 
  * @author Thiago
  */
-public class GetKm implements Runnable {
+public class GetGeoService implements Runnable {
 
 	private File inputfile;
 	private File outputfile;
@@ -59,7 +59,8 @@ public class GetKm implements Runnable {
 	 * 
 	 * @param pathFileConfig
 	 */
-	public GetKm(String pathFileConfig) throws FileNotFoundException {
+	public GetGeoService(String pathFileConfig) throws FileNotFoundException {
+		System.out.println("Projeto - AtlasBrasil");
 
 		try {
 			configFile = new FileInputStream(pathFileConfig);
@@ -69,24 +70,15 @@ public class GetKm implements Runnable {
 					"Erro ao carregar de propriedades do arquivo de config.");
 		}
 
+//		if (!inputfile.exists()) {
+//			throw new RuntimeException("[Erro] Arquivos inválidos.");
+//		}
+
 		loadProps(props);
 
 		System.out.println("Searching:");
 
-		loadThread();
-
 		loadXmlReader();
-	}
-
-	/**
-	 * 
-	 */
-	private void loadThread() {
-		if (inputfile.exists()) {
-			new Thread(this).start();
-		} else {
-			throw new RuntimeException("[Erro] Arquivos inválidos.");
-		}
 	}
 
 	/**
@@ -117,6 +109,7 @@ public class GetKm implements Runnable {
 
 	@Override
 	public void run() {
+
 		try {
 			fileIn = new BufferedReader(new FileReader(inputfile));
 			fileOut = new PrintStream(outputfile);
@@ -190,7 +183,7 @@ public class GetKm implements Runnable {
 				sb.append(text_delimeter + currentLineCols[indexOrig]
 						+ text_delimeter + delimeter + latOrig + delimeter
 						+ lngOrig + delimeter);
-				
+
 				urlGeocodeDest = String
 						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
 								encode(currentLineCols[indexDest]));
