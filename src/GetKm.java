@@ -45,7 +45,6 @@ public class GetKm implements Runnable {
 	private String text_delimeter;
 
 	private String dest, orig;
-	private String outputfile_cols;
 
 	private BufferedReader fileIn;
 	private PrintStream fileOut;
@@ -114,8 +113,6 @@ public class GetKm implements Runnable {
 
 		dest = props.getProperty("dest");
 		orig = props.getProperty("orig");
-
-		outputfile_cols = props.getProperty("outputfile_cols");
 	}
 
 	@Override
@@ -127,9 +124,6 @@ public class GetKm implements Runnable {
 			StringBuilder sb = new StringBuilder();
 			String line;
 
-			String arrColsConf[] = outputfile_cols.split(delimeter);
-
-			// mapeamento das colunas
 			Map<String, Integer> mapColsCsv = new HashMap<String, Integer>();
 
 			String latOrig, lngOrig;
@@ -180,29 +174,11 @@ public class GetKm implements Runnable {
 				urlGeocodeOrig = String
 						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
 								encode(currentLineCols[indexOrig]));
-				respOrig = "";
-				for (int i = 0; i < arrColsConf.length; i++) {
-					if (!mapColsCsv.containsKey(arrColsConf[i])) {
-						respOrig = getXml(urlGeocodeOrig);
-						break;
-					}
-				}
-
-				urlGeocodeDest = String
-						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
-								encode(currentLineCols[indexDest]));
-				respDest = "";
-				for (int i = 0; i < arrColsConf.length; i++) {
-					if (!mapColsCsv.containsKey(arrColsConf[i])) {
-						respDest = getXml(urlGeocodeDest);
-						break;
-					}
-				}
+				respOrig = getXml(urlGeocodeOrig);
 
 				latOrig = getXPath(
 						"/GeocodeResponse/result/geometry/location/lat",
 						respOrig);
-
 				lngOrig = getXPath(
 						"/GeocodeResponse/result/geometry/location/lng",
 						respOrig);
@@ -214,6 +190,11 @@ public class GetKm implements Runnable {
 				sb.append(text_delimeter + currentLineCols[indexOrig]
 						+ text_delimeter + delimeter + latOrig + delimeter
 						+ lngOrig + delimeter);
+				
+				urlGeocodeDest = String
+						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
+								encode(currentLineCols[indexDest]));
+				respDest = getXml(urlGeocodeDest);
 
 				latDest = getXPath(
 						"/GeocodeResponse/result/geometry/location/lat",
