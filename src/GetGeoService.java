@@ -70,9 +70,9 @@ public class GetGeoService implements Runnable {
 					"Erro ao carregar de propriedades do arquivo de config.");
 		}
 
-//		if (!inputfile.exists()) {
-//			throw new RuntimeException("[Erro] Arquivos inválidos.");
-//		}
+		// if (!inputfile.exists()) {
+		// throw new RuntimeException("[Erro] Arquivos inválidos.");
+		// }
 
 		loadProps(props);
 
@@ -131,6 +131,12 @@ public class GetGeoService implements Runnable {
 			boolean existCols = false;
 			int indexDest, indexOrig;
 
+			double lat1, lng1, lat2, lng2;
+
+			String saxGeocodeLat = "/GeocodeResponse/result/geometry/location/lat";
+			String saxGeocodeLng = "/GeocodeResponse/result/geometry/location/lng";
+			String saxGeocodeStatus = "/GeocodeResponse/status";
+
 			startTime = System.currentTimeMillis();
 
 			while ((line = fileIn.readLine()) != null) {
@@ -167,17 +173,18 @@ public class GetGeoService implements Runnable {
 				urlGeocodeOrig = String
 						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
 								encode(currentLineCols[indexOrig]));
+
 				respOrig = getXml(urlGeocodeOrig);
+				if ("OK".equals(getXPath(saxGeocodeStatus, respOrig))) {
+					latOrig = getXPath(saxGeocodeLat, respOrig);
+					lngOrig = getXPath(saxGeocodeLng, respOrig);
 
-				latOrig = getXPath(
-						"/GeocodeResponse/result/geometry/location/lat",
-						respOrig);
-				lngOrig = getXPath(
-						"/GeocodeResponse/result/geometry/location/lng",
-						respOrig);
-
-				double lat1 = Double.parseDouble(latOrig);
-				double lng1 = Double.parseDouble(lngOrig);
+					lat1 = Double.parseDouble(latOrig);
+					lng1 = Double.parseDouble(lngOrig);
+				} else {
+					throw new RuntimeException(
+							"Não foi possivel recuperar as valores da origem.");
+				}
 
 				// add column lat and lng destination
 				sb.append(text_delimeter + currentLineCols[indexOrig]
@@ -189,24 +196,24 @@ public class GetGeoService implements Runnable {
 								encode(currentLineCols[indexDest]));
 				respDest = getXml(urlGeocodeDest);
 
-				latDest = getXPath(
-						"/GeocodeResponse/result/geometry/location/lat",
-						respDest);
+				if ("OK".equals(getXPath(saxGeocodeStatus, respDest))) {
+					latDest = getXPath(saxGeocodeLat, respDest);
+					lngDest = getXPath(saxGeocodeLng, respDest);
 
-				lngDest = getXPath(
-						"/GeocodeResponse/result/geometry/location/lng",
-						respDest);
+					lat2 = Double.parseDouble(latDest);
+					lng2 = Double.parseDouble(lngDest);
+				} else {
+					throw new RuntimeException(
+							"Não foi possivel recuperar as valores do destino.");
+				}
 
 				// add column lat lng destination
 				sb.append(text_delimeter + currentLineCols[indexDest]
 						+ text_delimeter + delimeter + latOrig + delimeter
 						+ lngOrig + delimeter);
 
-				double lat2 = Double.parseDouble(latDest);
-				double lng2 = Double.parseDouble(lngDest);
-
 				// distance
-				sb.append(String.format(Locale.ENGLISH, "%s%.2f%s",
+				sb.append(String.format(Locale.ENGLISH, "%s%.2f km%s",
 						text_delimeter,
 						(calcDistance(lat1, lng1, lat2, lng2) / 1000),
 						text_delimeter)
@@ -218,11 +225,19 @@ public class GetGeoService implements Runnable {
 								encode(latOrig), encode(lngOrig),
 								encode(latDest), encode(lngDest));
 				respRoute = getXml(urlRoute);
-				route = getXPath("/DirectionsResponse/route/leg/distance/text",
-						respRoute);
-				duration = getXPath(
-						"/DirectionsResponse/route/leg/duration/text",
-						respRoute);
+
+				if ("OK".equals(getXPath("/DirectionsResponse/status",
+						respRoute))) {
+					route = getXPath(
+							"/DirectionsResponse/route/leg/distance/text",
+							respRoute);
+					duration = getXPath(
+							"/DirectionsResponse/route/leg/duration/text",
+							respRoute);
+				} else {
+					throw new RuntimeException(
+							"Não foi possivel recuperar da distância.");
+				}
 
 				sb.append(route + delimeter + duration);
 
