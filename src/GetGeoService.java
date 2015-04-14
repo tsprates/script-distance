@@ -119,19 +119,20 @@ public class GetGeoService implements Runnable {
 
 			Map<String, Integer> mapColsCsv = new HashMap<String, Integer>();
 
-			String latOrig, lngOrig;
-			String latDest, lngDest;
-			String route, duration;
+			String latOrig = "", lngOrig = "";
+			String latDest = "", lngDest = "";
 
-			String respOrig, respDest, respRoute;
+			String route = "", duration = "";
+
 			String urlGeocodeOrig, urlGeocodeDest, urlRoute;
+			String respOrig, respDest, respRoute;
 
 			int lines = 0;
 
 			boolean existCols = false;
 			int indexDest, indexOrig;
 
-			double lat1, lng1, lat2, lng2;
+			Double lat1 = null, lng1 = null, lat2 = null, lng2 = null;
 
 			String saxGeocodeLat = "/GeocodeResponse/result/geometry/location/lat";
 			String saxGeocodeLng = "/GeocodeResponse/result/geometry/location/lng";
@@ -181,9 +182,6 @@ public class GetGeoService implements Runnable {
 
 					lat1 = Double.parseDouble(latOrig);
 					lng1 = Double.parseDouble(lngOrig);
-				} else {
-					throw new RuntimeException(
-							"Não foi possivel recuperar as valores da origem.");
 				}
 
 				// add column lat and lng destination
@@ -202,9 +200,6 @@ public class GetGeoService implements Runnable {
 
 					lat2 = Double.parseDouble(latDest);
 					lng2 = Double.parseDouble(lngDest);
-				} else {
-					throw new RuntimeException(
-							"Não foi possivel recuperar as valores do destino.");
 				}
 
 				// add column lat lng destination
@@ -213,11 +208,15 @@ public class GetGeoService implements Runnable {
 						+ lngOrig + delimeter);
 
 				// distance
-				sb.append(String.format(Locale.ENGLISH, "%s%.2f km%s",
-						text_delimeter,
-						(calcDistance(lat1, lng1, lat2, lng2) / 1000),
-						text_delimeter)
-						+ delimeter);
+				String fmtColDist = "";
+				if (lat1 != null && lng1 != null && 
+						lat1 != null && lng1 != null) {
+					fmtColDist = String.format(Locale.ENGLISH, "%s%.2f km%s",
+							text_delimeter,
+							(calcDistance(lat1, lng1, lat2, lng2) / 1000),
+							text_delimeter);
+				}
+				sb.append(fmtColDist + delimeter);
 
 				// route and duration
 				urlRoute = String
@@ -234,12 +233,10 @@ public class GetGeoService implements Runnable {
 					duration = getXPath(
 							"/DirectionsResponse/route/leg/duration/text",
 							respRoute);
-				} else {
-					throw new RuntimeException(
-							"Não foi possivel recuperar da distância.");
 				}
 
 				sb.append(route + delimeter + duration);
+				
 
 				// outputfile
 				fileOut.println(sb.toString());
