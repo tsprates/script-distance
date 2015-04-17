@@ -213,7 +213,12 @@ public class GetGeoService implements Runnable {
 
 					// duration = getXPath(saxDirecResp + "duration/text",
 					// resp);
-				}
+				} 
+//				else if ("OVER_QUERY_LIMIT".equals(getXPath(
+//						"/DirectionsResponse/status", resp))) {
+//					System.err
+//							.println("Conta de consulta do dia esgotada, tente amanhã.");
+//				}
 
 				sb.append(line + delimeter + distance + delimeter + route);
 
