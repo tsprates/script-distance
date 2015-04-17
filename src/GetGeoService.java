@@ -1,20 +1,21 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -44,10 +45,11 @@ public class GetGeoService implements Runnable {
 	private String delimeter;
 	private String text_delimeter;
 
-	private String dest, orig;
+	private String dest[];
+	private String orig[];
 
 	private BufferedReader fileIn;
-	private PrintStream fileOut;
+	private PrintWriter fileOut;
 
 	// xml
 	private DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -76,7 +78,7 @@ public class GetGeoService implements Runnable {
 
 		loadProps(props);
 
-		System.out.println("Searching:");
+		System.out.println("1. Searching:");
 
 		loadXmlReader();
 	}
@@ -103,8 +105,29 @@ public class GetGeoService implements Runnable {
 		delimeter = props.getProperty("delimiter");
 		text_delimeter = props.getProperty("text_delimiter");
 
-		dest = props.getProperty("dest");
-		orig = props.getProperty("orig");
+		dest = props.getProperty("dest").split(delimeter);
+		orig = props.getProperty("orig").split(delimeter);
+	}
+
+	/**
+	 * 
+	 * @param colsHeader
+	 * @param origDest
+	 * @param currentLineCols
+	 */
+	private String getCols(String[] colsHeader, String[] origDest,
+			String[] currentLineCols) {
+		StringBuilder search = new StringBuilder("");
+		for (int k = 0; k < colsHeader.length; k++) {
+			for (int i = 0; i < origDest.length; i++) {
+				if (colsHeader[k].trim().equals(origDest[i].trim())) {
+					search.append(" " + currentLineCols[k]);
+				}
+			}
+
+		}
+
+		return search.toString();
 	}
 
 	@Override
@@ -112,31 +135,27 @@ public class GetGeoService implements Runnable {
 
 		try {
 			fileIn = new BufferedReader(new FileReader(inputfile));
-			fileOut = new PrintStream(outputfile);
+			fileOut = new PrintWriter(new BufferedWriter(new FileWriter(
+					outputfile)));
 
-			StringBuilder sb = new StringBuilder();
+			StringBuffer sb = null;
 			String line;
 
-			Map<String, Integer> mapColsCsv = new HashMap<String, Integer>();
+			String[] colsHeader = null;
 
-			String latOrig = "", lngOrig = "";
-			String latDest = "", lngDest = "";
+			String route = "", distance = "";
 
-			String route = "", duration = "";
-
-			String urlGeocodeOrig, urlGeocodeDest, urlRoute;
-			String respOrig, respDest, respRoute;
+			String url;
+			String resp;
 
 			int lines = 0;
 
+			String searchOrig = "", searchDest = "";
 			boolean existCols = false;
-			int indexDest, indexOrig;
 
 			Double lat1 = null, lng1 = null, lat2 = null, lng2 = null;
 
-			String saxGeocodeLat = "/GeocodeResponse/result/geometry/location/lat";
-			String saxGeocodeLng = "/GeocodeResponse/result/geometry/location/lng";
-			String saxGeocodeStatus = "/GeocodeResponse/status";
+			String saxDirecResp = "/DirectionsResponse/route/leg/";
 
 			startTime = System.currentTimeMillis();
 
@@ -144,115 +163,77 @@ public class GetGeoService implements Runnable {
 				String currentLineCols[] = line.split(delimeter);
 				lines++;
 
-				sb = new StringBuilder("");
+				sb = new StringBuffer("");
 
 				if (lines == 1) {
-					makeHeader();
+					makeHeader(line);
 				}
 
 				if (existCols == false) {
-					for (int i = 0; i < currentLineCols.length; i++) {
-						mapColsCsv.put(currentLineCols[i], i);
-					}
+					colsHeader = line.split(delimeter);
 					existCols = true;
 					continue;
 				}
 
-				if (existCols == false) {
-					throw new RuntimeException(
-							"Não foi possivel identificar as colunas do arquivo.");
-				}
+				searchOrig = getCols(colsHeader, orig, currentLineCols);
 
-				if (mapColsCsv.get(dest) == null
-						|| mapColsCsv.get(orig) == null) {
-					throw new RuntimeException("Colunas não batem.");
-				}
+				searchDest = getCols(colsHeader, dest, currentLineCols);
 
-				indexDest = mapColsCsv.get(dest);
-				indexOrig = mapColsCsv.get(orig);
+				// route and duration
+				url = String
+						.format(Locale.ENGLISH,
+								"https://maps.googleapis.com/maps/api/directions/xml?origin=%s&destination=%s&sensor=false",
+								encode(searchOrig.trim().toLowerCase()),
+								encode(searchDest.trim().toLowerCase()));
+				resp = getXml(url);
 
-				urlGeocodeOrig = String
-						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
-								encode(currentLineCols[indexOrig]));
+				// duration = "";
+				distance = "";
+				route = "";
 
-				respOrig = getXml(urlGeocodeOrig);
-				if ("OK".equals(getXPath(saxGeocodeStatus, respOrig))) {
-					latOrig = getXPath(saxGeocodeLat, respOrig);
-					lngOrig = getXPath(saxGeocodeLng, respOrig);
+				if ("OK".equals(getXPath("/DirectionsResponse/status", resp))) {
+					route = getXPath(saxDirecResp + "distance/text", resp);
 
-					lat1 = Double.parseDouble(latOrig);
-					lng1 = Double.parseDouble(lngOrig);
-				}
+					lat1 = Double.parseDouble(getXPath(saxDirecResp
+							+ "start_location/lat", resp));
 
-				// add column lat and lng destination
-				sb.append(text_delimeter + currentLineCols[indexOrig]
-						+ text_delimeter + delimeter + latOrig + delimeter
-						+ lngOrig + delimeter);
+					lng1 = Double.parseDouble(getXPath(saxDirecResp
+							+ "start_location/lng", resp));
 
-				urlGeocodeDest = String
-						.format("http://maps.googleapis.com/maps/api/geocode/xml?address=%s&sensor=false",
-								encode(currentLineCols[indexDest]));
-				respDest = getXml(urlGeocodeDest);
+					lat2 = Double.parseDouble(getXPath(saxDirecResp
+							+ "end_location/lat", resp));
 
-				if ("OK".equals(getXPath(saxGeocodeStatus, respDest))) {
-					latDest = getXPath(saxGeocodeLat, respDest);
-					lngDest = getXPath(saxGeocodeLng, respDest);
+					lng2 = Double.parseDouble(getXPath(saxDirecResp
+							+ "end_location/lng", resp));
 
-					lat2 = Double.parseDouble(latDest);
-					lng2 = Double.parseDouble(lngDest);
-				}
-
-				// add column lat lng destination
-				sb.append(text_delimeter + currentLineCols[indexDest]
-						+ text_delimeter + delimeter + latOrig + delimeter
-						+ lngOrig + delimeter);
-
-				// distance
-				String fmtColDist = "";
-				if (lat1 != null && lng1 != null && 
-						lat1 != null && lng1 != null) {
-					fmtColDist = String.format(Locale.ENGLISH, "%s%.2f km%s",
+					distance = String.format(Locale.ENGLISH, "%s%.2f km%s",
 							text_delimeter,
 							(calcDistance(lat1, lng1, lat2, lng2) / 1000),
 							text_delimeter);
-				}
-				sb.append(fmtColDist + delimeter);
 
-				// route and duration
-				urlRoute = String
-						.format("http://maps.googleapis.com/maps/api/directions/xml?origin=%s,%s&destination=%s,%s&sensor=false",
-								encode(latOrig), encode(lngOrig),
-								encode(latDest), encode(lngDest));
-				respRoute = getXml(urlRoute);
-
-				if ("OK".equals(getXPath("/DirectionsResponse/status",
-						respRoute))) {
-					route = getXPath(
-							"/DirectionsResponse/route/leg/distance/text",
-							respRoute);
-					duration = getXPath(
-							"/DirectionsResponse/route/leg/duration/text",
-							respRoute);
+					// duration = getXPath(saxDirecResp + "duration/text",
+					// resp);
 				}
 
-				sb.append(route + delimeter + duration);
-				
+				sb.append(line + delimeter + distance + delimeter + route);
 
-				// outputfile
 				fileOut.println(sb.toString());
 
-				// progress
-				System.out.println((lines - 1) + ". " + urlRoute);
+				System.out.println(lines + ". " + url);
 
-				waitForLines(lines);
 			}
-
-			fileIn.close();
-			fileOut.close();
 
 		} catch (IOException e) {
 			System.err.println("Arquivo não existe.");
 			e.printStackTrace();
+		} finally {
+
+			try {
+				fileIn.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			fileOut.close();
 		}
 
 		endTime = System.currentTimeMillis();
@@ -261,12 +242,11 @@ public class GetGeoService implements Runnable {
 
 	/**
 	 * 
+	 * @param fieldCsv
 	 */
-	private void makeHeader() {
-		fileOut.println("Dest" + delimeter + "lat" + delimeter + "lng"
-				+ delimeter + "Orig" + delimeter + "lat" + delimeter + "lng"
-				+ delimeter + "KM" + delimeter + "Distância" + delimeter
-				+ "Duração");
+	private void makeHeader(String fieldCsv) {
+		fileOut.print(fieldCsv + delimeter);
+		fileOut.println("Distância" + delimeter + "Percurso");
 	}
 
 	/**
@@ -329,65 +309,60 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
-	 * Sleep thread.
-	 * 
-	 * @param linhas
-	 */
-	private void waitForLines(int linhas) {
-		if ((linhas % 50) == 0) {
-			try {
-				Thread.sleep(5000L);
-			} catch (InterruptedException e) {
-			}
-		}
-
-		if ((linhas % 500) == 0) {
-			try {
-				Thread.sleep(10000L);
-			} catch (InterruptedException e) {
-			}
-		}
-	}
-
-	/**
-	 * Ler o conteúdo XML devolvido pela URL.
 	 * 
 	 * @param url
-	 *            Url do geoservice.
 	 * @return
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
-	private String getXml(String url) {
-		InputStream is;
-		BufferedReader br;
-		String lin;
+	private synchronized String getXml(String url) {
+		InputStream is = null;
+		BufferedReader br = null;
+		HttpURLConnection urlCon = null;
+		String line;
 
 		try {
-			is = new URL(url).openStream();
-			br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-			StringBuilder sb = new StringBuilder();
 
-			while ((lin = br.readLine()) != null) {
-				sb.append(lin);
+			urlCon = (HttpURLConnection) new URL(url).openConnection();
+
+			urlCon.setAllowUserInteraction(false);
+			urlCon.setDoInput(true);
+			urlCon.setDoOutput(false);
+			urlCon.setUseCaches(false);
+			urlCon.setRequestMethod("GET");
+			urlCon.connect();
+
+			StringBuffer sb = new StringBuffer("");
+
+			br = new BufferedReader(new InputStreamReader(
+					urlCon.getInputStream(), "UTF-8"));
+			while ((line = br.readLine()) != null) {
+				sb.append(line);
 			}
 
-			br.close();
 			return sb.toString();
 		} catch (IOException e) {
 			return "";
+		} finally {
+			if (urlCon != null)
+				urlCon.disconnect();
+
+			try {
+				if (is != null)
+					is.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
 		}
 
 	}
 
 	/**
-	 * Filtra tag procurada no XML devolvido pelo geoservice.
 	 * 
 	 * @param xml
-	 *            String que representa uma XML de resposta de um webservice
 	 * @param tag
-	 *            Tag que procura-se encontrar no XML.
-	 * @return Valor da tag encontrado.
+	 * @return
 	 */
 	private String getTag(String xml, String tag) {
 		try {
@@ -396,20 +371,9 @@ public class GetGeoService implements Runnable {
 			XPath xpath = xpathFactory.newXPath();
 			return xpath.evaluate(tag, document);
 		} catch (SAXException | IOException | XPathExpressionException e) {
+			e.printStackTrace();
 			return "";
 		}
 	}
-
-	/**
-	 * Formata para retirar o último delimiter utilizado para o arquivo de
-	 * entrada.
-	 * 
-	 * @param s
-	 * @return String
-	 */
-	// private String removeLastDelim(String s) {
-	// return s.substring(0, s.length()
-	// - props.getProperty("delimiter").length());
-	// }
 
 }
