@@ -193,7 +193,7 @@ public class GetGeoService implements Runnable {
 				route = "";
 
 				String result = getXPath("/DirectionsResponse/status", resp);
-				System.out.println(result);
+
 				if ("OK".equals(result)) {
 					route = getXPath(saxDirecResp + "distance/text", resp);
 
