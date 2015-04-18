@@ -135,7 +135,7 @@ public class GetGeoService implements Runnable {
 
 		try {
 			fileIn = new BufferedReader(new FileReader(inputfile));
-			
+
 			fileOut = new PrintWriter(new BufferedWriter(new FileWriter(
 					outputfile)));
 
@@ -193,7 +193,6 @@ public class GetGeoService implements Runnable {
 				route = "";
 
 				String result = getXPath("/DirectionsResponse/status", resp);
-
 				if ("OK".equals(result)) {
 					route = getXPath(saxDirecResp + "distance/text", resp);
 
@@ -223,13 +222,12 @@ public class GetGeoService implements Runnable {
 				fileOut.println(sb.toString());
 
 				System.out.println(lines + ". " + url);
-				
+
 				try {
 					// avoid status OVER_QUERY_LIMIT
 					Thread.sleep(500);
 				} catch (InterruptedException e) {
 				}
-
 			}
 
 		} catch (IOException e) {
@@ -242,6 +240,7 @@ public class GetGeoService implements Runnable {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+
 			fileOut.close();
 		}
 

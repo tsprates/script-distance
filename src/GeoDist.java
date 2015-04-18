@@ -17,7 +17,7 @@ public class GeoDist {
 			service.shutdown();
 
 			try {
-				service.awaitTermination(1, TimeUnit.DAYS);
+				service.awaitTermination(1, TimeUnit.HOURS);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
