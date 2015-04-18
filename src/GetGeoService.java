@@ -127,7 +127,7 @@ public class GetGeoService implements Runnable {
 
 		}
 
-		return search.toString();
+		return search.toString().trim();
 	}
 
 	@Override
@@ -135,6 +135,7 @@ public class GetGeoService implements Runnable {
 
 		try {
 			fileIn = new BufferedReader(new FileReader(inputfile));
+			
 			fileOut = new PrintWriter(new BufferedWriter(new FileWriter(
 					outputfile)));
 
@@ -183,15 +184,17 @@ public class GetGeoService implements Runnable {
 				url = String
 						.format(Locale.ENGLISH,
 								"https://maps.googleapis.com/maps/api/directions/xml?origin=%s&destination=%s&sensor=false",
-								encode(searchOrig.trim().toLowerCase()),
-								encode(searchDest.trim().toLowerCase()));
+								encode(searchOrig.toLowerCase()),
+								encode(searchDest.toLowerCase()));
 				resp = getXml(url);
 
 				// duration = "";
 				distance = "";
 				route = "";
 
-				if ("OK".equals(getXPath("/DirectionsResponse/status", resp))) {
+				String result = getXPath("/DirectionsResponse/status", resp);
+				System.out.println(result);
+				if ("OK".equals(result)) {
 					route = getXPath(saxDirecResp + "distance/text", resp);
 
 					lat1 = Double.parseDouble(getXPath(saxDirecResp
@@ -213,18 +216,19 @@ public class GetGeoService implements Runnable {
 
 					// duration = getXPath(saxDirecResp + "duration/text",
 					// resp);
-				} 
-//				else if ("OVER_QUERY_LIMIT".equals(getXPath(
-//						"/DirectionsResponse/status", resp))) {
-//					System.err
-//							.println("Conta de consulta do dia esgotada, tente amanhã.");
-//				}
+				}
 
 				sb.append(line + delimeter + distance + delimeter + route);
 
 				fileOut.println(sb.toString());
 
 				System.out.println(lines + ". " + url);
+				
+				try {
+					// avoid status OVER_QUERY_LIMIT
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+				}
 
 			}
 
@@ -324,7 +328,6 @@ public class GetGeoService implements Runnable {
 		InputStream is = null;
 		BufferedReader br = null;
 		HttpURLConnection urlCon = null;
-		String line;
 
 		try {
 
@@ -341,8 +344,9 @@ public class GetGeoService implements Runnable {
 
 			br = new BufferedReader(new InputStreamReader(
 					urlCon.getInputStream(), "UTF-8"));
-			while ((line = br.readLine()) != null) {
-				sb.append(line);
+			int c;
+			while ((c = br.read()) != -1) {
+				sb.append((char) c);
 			}
 
 			return sb.toString();

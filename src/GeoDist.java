@@ -22,7 +22,8 @@ public class GeoDist {
 				e.printStackTrace();
 			}
 		} else {
-			System.err.println(" [Error] - Necessário arquivo de configurações.");
+			System.err
+					.println(" [Error] - Necessário arquivo de configurações.");
 			System.exit(0);
 		}
 	}
