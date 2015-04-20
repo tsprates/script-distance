@@ -324,25 +324,25 @@ public class GetGeoService implements Runnable {
 	 * @throws IOException
 	 */
 	private synchronized String getXml(String url) {
-		InputStream is = null;
-		BufferedReader br = null;
-		HttpURLConnection urlCon = null;
+		HttpURLConnection conn = null;
+		InputStream stream = null;
 
 		try {
 
-			urlCon = (HttpURLConnection) new URL(url).openConnection();
+			conn = (HttpURLConnection) new URL(url).openConnection();
 
-			urlCon.setAllowUserInteraction(false);
-			urlCon.setDoInput(true);
-			urlCon.setDoOutput(false);
-			urlCon.setUseCaches(false);
-			urlCon.setRequestMethod("GET");
-			urlCon.connect();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Content-Type", "application/xml");
+			conn.setAllowUserInteraction(false);
+			conn.setDoInput(true);
+			conn.setDoOutput(false);
+			conn.setUseCaches(false);
+			conn.connect();
 
 			StringBuffer sb = new StringBuffer("");
 
-			br = new BufferedReader(new InputStreamReader(
-					urlCon.getInputStream(), "UTF-8"));
+			BufferedReader br = new BufferedReader(new InputStreamReader(
+					conn.getInputStream(), "UTF-8"));
 			int c;
 			while ((c = br.read()) != -1) {
 				sb.append((char) c);
@@ -352,18 +352,19 @@ public class GetGeoService implements Runnable {
 		} catch (IOException e) {
 			return "";
 		} finally {
-			if (urlCon != null)
-				urlCon.disconnect();
+			if (conn != null) {
+				conn.disconnect();
+			}
 
 			try {
-				if (is != null)
-					is.close();
+				if (stream != null) {
+					stream.close();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
 		}
-
 	}
 
 	/**
