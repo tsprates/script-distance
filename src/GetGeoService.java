@@ -1,13 +1,13 @@
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
@@ -78,7 +78,7 @@ public class GetGeoService implements Runnable {
 
 		loadProps(props);
 
-		System.out.println("1. Searching:");
+		System.out.println("Searching:");
 
 		loadXmlReader();
 	}
@@ -136,8 +136,8 @@ public class GetGeoService implements Runnable {
 		try {
 			fileIn = new BufferedReader(new FileReader(inputfile));
 
-			fileOut = new PrintWriter(new BufferedWriter(new FileWriter(
-					outputfile)));
+			fileOut = new PrintWriter(new OutputStreamWriter(
+					new FileOutputStream(outputfile), "UTF-8"));
 
 			StringBuffer sb = null;
 			String line;
