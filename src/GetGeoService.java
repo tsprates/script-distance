@@ -144,7 +144,7 @@ public class GetGeoService implements Runnable {
 
 			String[] colsHeader = null;
 
-			String route = "", distance = "";
+			String route = "", distance = "", duration = "";
 
 			String url;
 			String resp;
@@ -188,7 +188,7 @@ public class GetGeoService implements Runnable {
 								encode(searchDest.toLowerCase()));
 				resp = getXml(url);
 
-				// duration = "";
+				duration = "";
 				distance = "";
 				route = "";
 
@@ -213,11 +213,11 @@ public class GetGeoService implements Runnable {
 							(calcDistance(lat1, lng1, lat2, lng2) / 1000),
 							text_delimeter);
 
-					// duration = getXPath(saxDirecResp + "duration/text",
-					// resp);
+					duration = getXPath(saxDirecResp + "duration/text", resp);
 				}
 
-				sb.append(line + delimeter + distance + delimeter + route);
+				sb.append(line + delimeter + distance + delimeter + route
+						+ delimeter + duration);
 
 				fileOut.println(sb.toString());
 
@@ -254,7 +254,8 @@ public class GetGeoService implements Runnable {
 	 */
 	private void makeHeader(String fieldCsv) {
 		fileOut.print(fieldCsv + delimeter);
-		fileOut.println("Distância" + delimeter + "Percurso");
+		fileOut.println("Distância" + delimeter + "Rota" + delimeter
+				+ "Duração");
 	}
 
 	/**
