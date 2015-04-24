@@ -57,7 +57,7 @@ public class GetGeoService implements Runnable {
 	private XPathFactory xpathFactory = XPathFactory.newInstance();
 
 	/**
-	 * 
+	 * Constructor.
 	 * 
 	 * @param pathFileConfig
 	 */
@@ -84,7 +84,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
-	 * 
+	 * Instantiate XML doc builder.
 	 */
 	private void loadXmlReader() {
 		try {
@@ -95,6 +95,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Load properties.
 	 * 
 	 * @param props
 	 */
@@ -110,6 +111,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Returns the columns from the CSV file.
 	 * 
 	 * @param colsHeader
 	 * @param origDest
@@ -144,7 +146,9 @@ public class GetGeoService implements Runnable {
 
 			String[] colsHeader = null;
 
-			String route = "", distance = "", duration = "";
+			String result;
+			String route, distance, duration;
+			Double lat1 = null, lng1 = null, lat2 = null, lng2 = null;
 
 			String url;
 			String resp;
@@ -154,10 +158,9 @@ public class GetGeoService implements Runnable {
 			String searchOrig = "", searchDest = "";
 			boolean existCols = false;
 
-			Double lat1 = null, lng1 = null, lat2 = null, lng2 = null;
-
 			String saxDirecResp = "/DirectionsResponse/route/leg/";
 
+			// init time
 			startTime = System.currentTimeMillis();
 
 			while ((line = fileIn.readLine()) != null) {
@@ -188,11 +191,12 @@ public class GetGeoService implements Runnable {
 								encode(searchDest.toLowerCase()));
 				resp = getXml(url);
 
+				// reset previous values
 				duration = "";
 				distance = "";
 				route = "";
 
-				String result = getXPath("/DirectionsResponse/status", resp);
+				result = getXPath("/DirectionsResponse/status", resp);
 				if ("OK".equals(result)) {
 					route = getXPath(saxDirecResp + "distance/text", resp);
 
@@ -245,11 +249,13 @@ public class GetGeoService implements Runnable {
 			fileOut.close();
 		}
 
+		// calc elapsed time
 		endTime = System.currentTimeMillis();
 		System.out.println("End. " + ((endTime - startTime) / 1000L) + " segs");
 	}
 
 	/**
+	 * Build the CSV header.
 	 * 
 	 * @param fieldCsv
 	 */
@@ -260,11 +266,11 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Helper function for getTag.
 	 * 
-	 * @param indexCols
+	 * @see #getTag(String, String)
 	 * @param tag
 	 * @param resp
-	 * @param current
 	 * @return
 	 */
 	private String getXPath(String tag, String resp) {
@@ -272,6 +278,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Encode param URL.
 	 * 
 	 * @param s
 	 * @return
@@ -286,7 +293,11 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Calcula distance.
 	 * 
+	 * @see http
+	 *      ://stackoverflow.com/questions/1502590/calculate-distance-between
+	 *      -two-points-in-google-maps-v3
 	 * @param radlat1
 	 * @param radlng1
 	 * @param radlat2
@@ -309,6 +320,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Convert degrees to radians.
 	 * 
 	 * @param degrees
 	 * @return
@@ -319,6 +331,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Get string response in XML format.
 	 * 
 	 * @param url
 	 * @return
@@ -372,6 +385,7 @@ public class GetGeoService implements Runnable {
 	}
 
 	/**
+	 * Parse XML string.
 	 * 
 	 * @param xml
 	 * @param tag
