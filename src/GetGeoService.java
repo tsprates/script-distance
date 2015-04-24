@@ -334,6 +334,8 @@ public class GetGeoService implements Runnable {
 
 			conn.setRequestMethod("GET");
 			conn.setRequestProperty("Content-Type", "application/xml");
+			conn.setRequestProperty("Accept-Language",
+					"pt-br,pt;q=0.8,en-us;q=0.5,en;q=0.3");
 			conn.setAllowUserInteraction(false);
 			conn.setDoInput(true);
 			conn.setDoOutput(false);
