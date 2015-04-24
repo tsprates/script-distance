@@ -295,9 +295,7 @@ public class GetGeoService implements Runnable {
 	/**
 	 * Calcula distance.
 	 * 
-	 * @see http
-	 *      ://stackoverflow.com/questions/1502590/calculate-distance-between
-	 *      -two-points-in-google-maps-v3
+	 * @link http://stackoverflow.com/questions/1502590/calculate-distance-between-two-points-in-google-maps-v3
 	 * @param radlat1
 	 * @param radlng1
 	 * @param radlat2
