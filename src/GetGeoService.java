@@ -216,8 +216,9 @@ public class GetGeoService implements Runnable {
 					duration = getXPath(saxDirecResp + "duration/text", resp);
 				}
 
-				sb.append(line + delimeter + distance + delimeter + route
-						+ delimeter + duration);
+				sb.append(line + delimeter + distance + delimeter
+						+ text_delimeter + route + text_delimeter + delimeter
+						+ text_delimeter + duration + text_delimeter);
 
 				fileOut.println(sb.toString());
 
