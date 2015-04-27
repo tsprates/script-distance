@@ -158,7 +158,7 @@ public class GetGeoService implements Runnable {
 			String searchOrig = "", searchDest = "";
 			boolean existCols = false;
 
-			String saxDirecResp = "/DirectionsResponse/route/leg/";
+			String saxDirectionResp = "/DirectionsResponse/route/leg/";
 
 			// init time
 			startTime = System.currentTimeMillis();
@@ -183,46 +183,52 @@ public class GetGeoService implements Runnable {
 
 				searchDest = getCols(colsHeader, dest, currentLineCols);
 
-				// route and duration
+				// build url
 				url = String
 						.format(Locale.ENGLISH,
 								"https://maps.googleapis.com/maps/api/directions/xml?origin=%s&destination=%s&sensor=false",
 								encode(searchOrig.toLowerCase()),
 								encode(searchDest.toLowerCase()));
+				
 				resp = getXml(url);
 
 				// reset previous values
-				duration = "";
-				distance = "";
-				route = "";
+				duration 	= "";
+				distance 	= "";
+				route 		= "";
 
 				result = getXPath("/DirectionsResponse/status", resp);
 				if ("OK".equals(result)) {
-					route = getXPath(saxDirecResp + "distance/text", resp);
+					// route = getXPath(saxDirecResp + "distance/value", resp);
+					route = String.format(
+							Locale.ENGLISH,
+							"%.2f",
+							(Double.parseDouble(getXPath(saxDirectionResp + "distance/value", resp)) / 1000));
 
-					lat1 = Double.parseDouble(getXPath(saxDirecResp
+					lat1 = Double.parseDouble(getXPath(saxDirectionResp
 							+ "start_location/lat", resp));
 
-					lng1 = Double.parseDouble(getXPath(saxDirecResp
+					lng1 = Double.parseDouble(getXPath(saxDirectionResp
 							+ "start_location/lng", resp));
 
-					lat2 = Double.parseDouble(getXPath(saxDirecResp
+					lat2 = Double.parseDouble(getXPath(saxDirectionResp
 							+ "end_location/lat", resp));
 
-					lng2 = Double.parseDouble(getXPath(saxDirecResp
+					lng2 = Double.parseDouble(getXPath(saxDirectionResp
 							+ "end_location/lng", resp));
 
-					distance = String.format(Locale.ENGLISH, "%s%.2f km%s",
-							text_delimeter,
-							(calcDistance(lat1, lng1, lat2, lng2) / 1000),
-							text_delimeter);
+					distance = String.format(
+							Locale.ENGLISH,
+							"%.2f",
+							(calcDistance(lat1, lng1, lat2, lng2) / 1000));
 
-					duration = getXPath(saxDirecResp + "duration/text", resp);
+					duration = getXPath(saxDirectionResp + "duration/text",
+							resp);
 				}
 
-				sb.append(line + delimeter + distance + delimeter
-						+ text_delimeter + route + text_delimeter + delimeter
-						+ text_delimeter + duration + text_delimeter);
+				sb.append(line + delimeter + distance + delimeter + route
+						+ delimeter + text_delimeter + duration
+						+ text_delimeter);
 
 				fileOut.println(sb.toString());
 
@@ -261,7 +267,7 @@ public class GetGeoService implements Runnable {
 	 */
 	private void makeHeader(String fieldCsv) {
 		fileOut.print(fieldCsv + delimeter);
-		fileOut.println("Distância" + delimeter + "Rota" + delimeter
+		fileOut.println("Distância (Km)" + delimeter + "Rota (Km)" + delimeter
 				+ "Duração");
 	}
 
@@ -295,7 +301,7 @@ public class GetGeoService implements Runnable {
 	/**
 	 * Calcula distance.
 	 * 
-	 * @link http://stackoverflow.com/questions/1502590/calculate-distance-between-two-points-in-google-maps-v3
+	 * @link <http://stackoverflow.com/questions/1502590/calculate-distance-between-two-points-in-google-maps-v3>
 	 * @param radlat1
 	 * @param radlng1
 	 * @param radlat2
