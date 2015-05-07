@@ -31,6 +31,7 @@ import org.xml.sax.SAXException;
 
 /**
  * 
+ * 
  * @author Thiago
  */
 public class GetGeoService implements Runnable {
@@ -100,7 +101,9 @@ public class GetGeoService implements Runnable {
 	 * @param props
 	 */
 	private void loadProps(Properties props) {
+		// Limite de 2.500 elementos a cada período de 24 horas.
 		inputfile = new File(props.getProperty("inputfile"));
+
 		outputfile = new File(props.getProperty("outputfile"));
 
 		delimeter = props.getProperty("delimiter");
@@ -189,13 +192,13 @@ public class GetGeoService implements Runnable {
 								"https://maps.googleapis.com/maps/api/directions/xml?origin=%s&destination=%s&sensor=false",
 								encode(searchOrig.toLowerCase()),
 								encode(searchDest.toLowerCase()));
-				
+
 				resp = getXml(url);
 
 				// reset previous values
-				duration 	= "";
-				distance 	= "";
-				route 		= "";
+				duration = "";
+				distance = "";
+				route = "";
 
 				result = getXPath("/DirectionsResponse/status", resp);
 				if ("OK".equals(result)) {
@@ -203,7 +206,8 @@ public class GetGeoService implements Runnable {
 					route = String.format(
 							Locale.ENGLISH,
 							"%.2f",
-							(Double.parseDouble(getXPath(saxDirectionResp + "distance/value", resp)) / 1000));
+							(Double.parseDouble(getXPath(saxDirectionResp
+									+ "distance/value", resp)) / 1000));
 
 					lat1 = Double.parseDouble(getXPath(saxDirectionResp
 							+ "start_location/lat", resp));
@@ -217,9 +221,7 @@ public class GetGeoService implements Runnable {
 					lng2 = Double.parseDouble(getXPath(saxDirectionResp
 							+ "end_location/lng", resp));
 
-					distance = String.format(
-							Locale.ENGLISH,
-							"%.2f",
+					distance = String.format(Locale.ENGLISH, "%.2f",
 							(calcDistance(lat1, lng1, lat2, lng2) / 1000));
 
 					duration = getXPath(saxDirectionResp + "duration/text",
@@ -234,10 +236,14 @@ public class GetGeoService implements Runnable {
 
 				System.out.println(lines + ". " + url);
 
-				try {
-					// avoid status OVER_QUERY_LIMIT
-					Thread.sleep(500);
-				} catch (InterruptedException e) {
+				// 100 elementos por consulta.
+				// 100 elementos a cada 10 segundos.
+				if ((lines % 100) == 0) {
+					try {
+						// avoid status OVER_QUERY_LIMIT
+						Thread.sleep(10500);
+					} catch (InterruptedException e) {
+					}
 				}
 			}
 
@@ -301,7 +307,9 @@ public class GetGeoService implements Runnable {
 	/**
 	 * Calcula distance.
 	 * 
-	 * @link <http://stackoverflow.com/questions/1502590/calculate-distance-between-two-points-in-google-maps-v3>
+	 * @link 
+	 *       <http://stackoverflow.com/questions/1502590/calculate-distance-between
+	 *       -two-points-in-google-maps-v3>
 	 * @param radlat1
 	 * @param radlng1
 	 * @param radlat2
